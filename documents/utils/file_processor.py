@@ -1,9 +1,16 @@
 import os
 import csv
 import pdfplumber
+import pypdfium2 as pdfium  # Already in our requirements.txt!
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
 
+# Importing our OCR tools from the other files
+from .preprocess import preprocess_image
+from .ocr_engine import extract_text
+from .validator import validate_text
+import tempfile
+import cv2
 
 def get_file_type(filename):
     ext = os.path.splitext(filename)[1].lower()
@@ -22,11 +29,60 @@ def get_file_type(filename):
 
 def extract_from_pdf(file_path):
     text = ''
+    
+    # 1. Open the PDF with pdfplumber for digital text
     with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
+        # Open with pypdfium2 in case we need to render scanned pages to images
+        pdf_render = pdfium.PdfDocument(file_path)
+        
+        for page_idx, page in enumerate(pdf.pages):
             page_text = page.extract_text()
-            if page_text:
+            
+            # Threshold check: If digital text is missing or extremely short (e.g., less than 10 characters),
+            # it is highly likely an image, photo, or scanned page.
+            if not page_text or len(page_text.strip()) < 10:
+                try:
+                    # 2. Render the specific scanned page to a high-res image (300 DPI)
+                    pdfium_page = pdf_render[page_idx]
+                    bitmap = pdfium_page.render(scale=300/72) # Standard conversion formula to 300 DPI
+                    pil_img = bitmap.to_pil()
+                    
+                    # 3. Save to a temporary image file to feed your OpenCV/PaddleOCR pipeline
+                    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                        pil_img.save(tmp.name, format="JPEG")
+                        tmp_path = tmp.name
+                    
+                    # 4. Apply your existing image preprocessing (Denoise, CLAHE, Deskew)
+                    processed_img = preprocess_image(tmp_path)
+                    
+                    # Save preprocessed image back to a temporary file for PaddleOCR
+                    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_proc:
+                        cv2.imwrite(tmp_proc.name, processed_img)
+                        tmp_proc_path = tmp_proc.name
+                        
+                    # 5. Extract text via PaddleOCR and validate confidence/characters
+                    raw_items = extract_text(tmp_proc_path)
+                    ocr_page_text = validate_text(raw_items)
+                    
+                    # Clean up temporary files
+                    if os.path.exists(tmp_path):
+                        os.unlink(tmp_path)
+                    if os.path.exists(tmp_proc_path):
+                        os.unlink(tmp_proc_path)
+                        
+                    if ocr_page_text.strip():
+                        text += ocr_page_text + '\n'
+                    else:
+                        text += f"[Scanned Page {page_idx + 1}: No text could be detected via OCR]\n"
+                        
+                except Exception as ocr_error:
+                    text += f"[Error processing page {page_idx + 1} with OCR: {str(ocr_error)}]\n"
+            else:
+                # Page is a normal digital page, use the extracted text directly
                 text += page_text + '\n'
+                
+        pdf_render.close()
+        
     return text.strip()
 
 
