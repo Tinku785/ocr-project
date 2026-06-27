@@ -1,0 +1,58 @@
+{% extends "documents/base.html" %}
+{% block content %}
+{% if doc.status == 'pending' or doc.status == 'processing' %}
+<meta http-equiv="refresh" content="5">
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{{ doc.title }}
+        <span class="badge bg-secondary ms-2">{{ doc.file_type|upper }}</span>
+        {% if doc.status == 'done' %}
+            <span class="badge bg-success ms-2">Done</span>
+        {% elif doc.status == 'processing' %}
+            <span class="badge bg-info ms-2">Processing</span>
+        {% elif doc.status == 'failed' %}
+            <span class="badge bg-danger ms-2">Failed</span>
+        {% else %}
+            <span class="badge bg-secondary ms-2">Pending</span>
+        {% endif %}
+    </h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ doc.file.url }}" class="btn btn-outline-dark" download>
+            ⬇ Download Original
+        </a>
+        {% if doc.status == 'done' %}
+        <a href="/document/{{ doc.pk }}/export/txt/" class="btn btn-outline-dark">
+            ⬇ Download TXT
+        </a>
+        <a href="/document/{{ doc.pk }}/export/pdf/" class="btn btn-outline-dark">
+            ⬇ Download PDF
+        </a>
+        {% endif %}
+        <a href="/document/{{ doc.pk }}/edit/" class="btn btn-outline-primary">
+            Edit Title
+        </a>
+        <a href="/document/{{ doc.pk }}/delete/" class="btn btn-outline-danger">
+            Delete
+        </a>
+    </div>
+</div>
+
+<p class="text-muted">Uploaded: {{ doc.uploaded_at|date:"d M Y, H:i" }}</p>
+
+{% if doc.file_type == 'image' %}
+<img src="{{ doc.file.url }}" class="img-fluid mb-3" style="max-height:400px">
+{% endif %}
+
+<h5>Extracted Text:</h5>
+{% if doc.status == 'pending' or doc.status == 'processing' %}
+<div class="alert alert-info">
+    OCR is running in the background. This page refreshes automatically.
+</div>
+{% endif %}
+<pre class="bg-light p-3 rounded" style="white-space:pre-wrap;">{{ doc.extracted_text }}</pre>
+
+<a href="/" class="btn btn-secondary mt-2">Dashboard</a>
+<a href="/search/" class="btn btn-outline-primary mt-2">Search</a>
+
+{% endblock %}

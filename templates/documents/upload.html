@@ -1,0 +1,45 @@
+{% extends "documents/base.html" %}
+{% block content %}
+<h2>Upload Document</h2>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" id="upload-form">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label class="form-label">Document Title</label>
+        <input type="text" name="title" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Upload File</label>
+        <input type="file" name="file" class="form-control"
+               accept=".jpg,.jpeg,.png,.bmp,.pdf,.docx,.xlsx,.csv" required>
+        <div class="form-text">
+            Supported: Images (JPG, PNG), PDF, Word (DOCX), Excel (XLSX), CSV
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="submit-btn">
+        Upload Document
+    </button>
+</form>
+
+<div id="spinner-overlay" style="display:none; position:fixed; top:0; left:0;
+     width:100%; height:100%; background:rgba(0,0,0,0.6);
+     z-index:9999; flex-direction:column;
+     align-items:center; justify-content:center;">
+    <div class="spinner-border text-light mb-3" style="width:3rem; height:3rem;" role="status"></div>
+    <p class="text-white fs-5">Uploading document...</p>
+    <p class="text-white-50">OCR will continue in the background.</p>
+</div>
+
+<script>
+document.getElementById('upload-form').addEventListener('submit', function() {
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').textContent = 'Uploading...';
+    const overlay = document.getElementById('spinner-overlay');
+    overlay.style.display = 'flex';
+});
+</script>
+{% endblock %}

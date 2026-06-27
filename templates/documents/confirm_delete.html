@@ -1,0 +1,15 @@
+{% extends "documents/base.html" %}
+{% block content %}
+<div class="card border-danger" style="max-width: 500px;">
+    <div class="card-body">
+        <h4 class="text-danger">Delete Document?</h4>
+        <p>Are you sure you want to delete <strong>{{ doc.title }}</strong>?
+        This cannot be undone.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="/document/{{ doc.pk }}/" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

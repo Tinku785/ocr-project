@@ -1,0 +1,13 @@
+{% extends "documents/base.html" %}
+{% block content %}
+<h2>Edit Document</h2>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label class="form-label">Document Title</label>
+        <input type="text" name="title" class="form-control" value="{{ doc.title }}" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="/document/{{ doc.pk }}/" class="btn btn-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

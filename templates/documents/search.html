@@ -1,0 +1,21 @@
+{% extends "documents/base.html" %}
+{% block content %}
+<h2>Search Documents</h2>
+<form method="get">
+    <div class="input-group mb-4">
+        <input type="text" name="q" class="form-control" value="{{ query }}" placeholder="Search extracted text...">
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+{% for doc in results %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">{{ doc.title }}</h5>
+        <p class="card-text text-muted">{{ doc.extracted_text|truncatechars:200 }}</p>
+        <a href="/document/{{ doc.pk }}/" class="btn btn-sm btn-outline-primary">View</a>
+    </div>
+</div>
+{% empty %}
+{% if query %}<p>No results found for "{{ query }}"</p>{% endif %}
+{% endfor %}
+{% endblock %}
