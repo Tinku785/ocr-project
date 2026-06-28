@@ -1,6 +1,6 @@
 import os
 import csv
-import pdfplumber
+import tempfile
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
 
@@ -22,8 +22,6 @@ def get_file_type(filename):
 
 def extract_from_pdf(file_path, doc_id=None):
     import fitz
-    import tempfile
-    import os
     from .ocr_engine import extract_text
     from .validator import validate_text
 

@@ -1,9 +1,12 @@
+import logging
 import os
 import tempfile
 
 from celery import shared_task
 
 from .models import Document
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True)
@@ -63,8 +66,14 @@ def process_document(self, document_id):
         doc.progress = 100
         doc.save(update_fields=['extracted_text', 'status', 'progress'])
     except Exception as exc:
-        doc.extracted_text = f'[OCR processing failed: {exc}]'
+        # Log the real error server-side — do NOT expose internal details to users.
+        logger.error(
+            'OCR processing failed for document %s: %s',
+            document_id, exc, exc_info=True,
+        )
+        doc.extracted_text = '[OCR processing failed. Please try uploading the document again.]'
         doc.status = 'failed'
         doc.progress = 0
         doc.save(update_fields=['extracted_text', 'status', 'progress'])
         raise
+
