@@ -195,7 +195,7 @@
             {% for doc in documents %}
                 <button class="doc-item" type="button" data-document-id="{{ doc.pk }}" data-document-title="{{ doc.title|escape }}">
                     <span class="doc-title">{{ doc.title }}</span>
-                    <span class="text-muted small">{{ doc.file_type|upper }} · {{ doc.uploaded_at|date:"d M Y, H:i" }}</span>
+                    <span class="text-muted small">{{ doc.file_type|upper }} - {{ doc.uploaded_at|date:"d M Y, H:i" }}</span>
                 </button>
             {% empty %}
                 <div class="text-muted small p-3">

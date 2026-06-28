@@ -1,8 +1,13 @@
-import os
 import csv
+import logging
+import os
 import tempfile
+
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_file_type(filename):
@@ -24,6 +29,7 @@ def extract_from_pdf(file_path, doc_id=None):
     import fitz
     from .ocr_engine import extract_text
     from .validator import validate_text
+    from ..models import Document
 
     text = ''
 
@@ -32,23 +38,26 @@ def extract_from_pdf(file_path, doc_id=None):
         for page_num in range(total_pages):
             if doc_id:
                 try:
-                    from ..models import Document
                     progress_pct = 10 + int((page_num / total_pages) * 80)
                     Document.objects.filter(pk=doc_id).update(progress=progress_pct)
-                except Exception as e:
-                    print(f"Error updating progress: {e}")
+                except Exception as exc:
+                    logger.warning(
+                        'Error updating progress for document %s: %s',
+                        doc_id,
+                        exc,
+                    )
             page = pdf[page_num]
 
             # Try direct text extraction first
             page_text = page.get_text()
 
             if page_text.strip():
-                # Digital PDF — text found directly
-                print(f"Page {page_num + 1}: digital text found")
+                # Digital PDF: text found directly
+                logger.debug('Page %s: digital text found', page_num + 1)
                 text += page_text + '\n'
             else:
-                # Scanned PDF — convert page to image and run OCR
-                print(f"Page {page_num + 1}: no text found, running OCR")
+                # Scanned PDF: convert page to image and run OCR
+                logger.debug('Page %s: no text found, running OCR', page_num + 1)
                 mat = fitz.Matrix(2, 2)  # 2x zoom for better quality
                 pix = page.get_pixmap(matrix=mat)
 
@@ -63,8 +72,8 @@ def extract_from_pdf(file_path, doc_id=None):
                     page_text = validate_text(raw_items)
                     if page_text.strip():
                         text += page_text + '\n'
-                except Exception as e:
-                    print(f"OCR failed for page {page_num + 1}: {e}")
+                except Exception as exc:
+                    logger.warning('OCR failed for page %s: %s', page_num + 1, exc)
                 finally:
                     os.unlink(tmp_path)
 

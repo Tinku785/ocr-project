@@ -19,22 +19,24 @@
     </h2>
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ doc.file.url }}" class="btn btn-outline-dark" download>
-            ⬇ Download Original
+            Download Original
         </a>
         {% if doc.status == 'done' %}
         <a href="/document/{{ doc.pk }}/export/txt/" class="btn btn-outline-dark">
-            ⬇ Download TXT
+            Download TXT
         </a>
         <a href="/document/{{ doc.pk }}/export/pdf/" class="btn btn-outline-dark">
-            ⬇ Download PDF
+            Download PDF
         </a>
-        <a href="/document/{{ doc.pk }}/retry/" class="btn btn-outline-warning">
-            🔄 Reprocess Document
-        </a>
+        <form method="post" action="/document/{{ doc.pk }}/retry/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning">Reprocess Document</button>
+        </form>
         {% elif doc.status == 'failed' %}
-        <a href="/document/{{ doc.pk }}/retry/" class="btn btn-outline-warning">
-            🔄 Retry Processing
-        </a>
+        <form method="post" action="/document/{{ doc.pk }}/retry/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning">Retry Processing</button>
+        </form>
         {% endif %}
         <a href="/document/{{ doc.pk }}/edit/" class="btn btn-outline-primary">
             Edit Title
@@ -59,15 +61,15 @@
             <strong>OCR is running in the background.</strong> This page refreshes automatically.
         </div>
         <button class="btn btn-sm btn-info text-white fw-bold" disabled>
-            ⌛ Progress: {{ doc.progress }}%
+            Progress: {{ doc.progress }}%
         </button>
     </div>
     <div class="progress" style="height: 20px;">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
-             role="progressbar" 
-             style="width: {{ doc.progress }}%;" 
-             aria-valuenow="{{ doc.progress }}" 
-             aria-valuemin="0" 
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+             role="progressbar"
+             style="width: {{ doc.progress }}%;"
+             aria-valuenow="{{ doc.progress }}"
+             aria-valuemin="0"
              aria-valuemax="100">
             {{ doc.progress }}%
         </div>
@@ -78,9 +80,10 @@
     <div>
         <strong>Processing Failed!</strong> An error occurred while running OCR on this document.
     </div>
-    <a href="/document/{{ doc.pk }}/retry/" class="btn btn-danger btn-sm">
-        🔄 Retry Reprocessing
-    </a>
+    <form method="post" action="/document/{{ doc.pk }}/retry/">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm">Retry Reprocessing</button>
+    </form>
 </div>
 {% endif %}
 <pre class="bg-light p-3 rounded mb-1" style="white-space:pre-wrap;">{{ doc.extracted_text }}</pre>
@@ -88,9 +91,10 @@
 {% if doc.status == 'done' %}
 <div class="mb-3 text-end">
     <span class="text-muted small">Not extracted properly? </span>
-    <a href="/document/{{ doc.pk }}/retry/" class="btn btn-sm btn-link text-warning p-0 align-baseline">
-        🔄 Reprocess Document
-    </a>
+    <form method="post" action="/document/{{ doc.pk }}/retry/" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-link text-warning p-0 align-baseline">Reprocess Document</button>
+    </form>
 </div>
 {% endif %}
 

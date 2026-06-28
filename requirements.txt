@@ -82,10 +82,8 @@ ujson==5.13.0
 urllib3==2.7.0
 wcwidth==0.8.1
 yarl==1.24.2
+PyMuPDF>=1.24.0
 reportlab>=4.0.0
 celery>=5.4.0
 redis>=5.0.0,<6.0.0
 google-genai>=1.0.0
-fitz
-reportlab
-frontend

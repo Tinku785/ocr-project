@@ -1,4 +1,5 @@
-from .utils.file_processor import get_file_type
+import logging
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -6,10 +7,19 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Count
 from django.db import transaction
+from django.views.decorators.http import require_POST
+
 from .models import Document
 from .tasks import process_document
+from .utils.file_processor import get_file_type
 
-import os
+
+logger = logging.getLogger(__name__)
+
+
+def _delete_document_file(doc):
+    if doc.file and doc.file.name:
+        doc.file.delete(save=False)
 
 
 @login_required
@@ -33,25 +43,29 @@ def upload_document(request):
 
         doc = None
         try:
-            doc = Document(title=title, file=uploaded_file,
-                        file_type=file_type, status='pending')
-            doc.save()
-
-            transaction.on_commit(lambda: process_document.delay(doc.pk))
+            with transaction.atomic():
+                doc = Document(
+                    title=title,
+                    file=uploaded_file,
+                    file_type=file_type,
+                    status='pending',
+                )
+                doc.save()
+                transaction.on_commit(lambda: process_document.delay(doc.pk))
             messages.success(
                 request,
                 'Document uploaded. OCR processing will continue in the background.'
             )
             return redirect('document_detail', pk=doc.pk)
-
         except Exception as e:
             try:
+                if doc and doc.file and doc.file.name:
+                    _delete_document_file(doc)
                 if doc and doc.pk:
-                    if doc.file and os.path.exists(doc.file.path):
-                        os.remove(doc.file.path)
                     doc.delete()
-            except:
-                pass
+            except Exception:
+                logger.exception('Failed to clean up partially uploaded document.')
+            logger.exception('Failed to upload document.')
             return render(request, 'documents/upload.html', {
                 'error': f'Error: {str(e)}'
             })
@@ -83,10 +97,9 @@ def search_documents(request):
 def delete_document(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if request.method == 'POST':
-        # Delete the actual file from disk too
-        if doc.file and os.path.exists(doc.file.path):
-            os.remove(doc.file.path)
-        doc.delete()
+        with transaction.atomic():
+            _delete_document_file(doc)
+            doc.delete()
         return redirect('upload_document')
     return render(request, 'documents/confirm_delete.html', {'doc': doc})
 
@@ -117,6 +130,7 @@ def login_view(request):
     return render(request, 'documents/login.html')
 
 
+@require_POST
 def logout_view(request):
     logout(request)
     return redirect('login')
@@ -197,11 +211,12 @@ def export_pdf(request, pk):
 def retry_document(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if doc.status in ['failed', 'done']:
-        doc.status = 'pending'
-        doc.progress = 0
-        doc.extracted_text = ''
-        doc.save(update_fields=['status', 'progress', 'extracted_text'])
-        transaction.on_commit(lambda: process_document.delay(doc.pk))
+        with transaction.atomic():
+            doc.status = 'pending'
+            doc.progress = 0
+            doc.extracted_text = ''
+            doc.save(update_fields=['status', 'progress', 'extracted_text'])
+            transaction.on_commit(lambda: process_document.delay(doc.pk))
         messages.success(request, 'Document reprocessing has started.')
     else:
         messages.warning(request, 'Document is already being processed.')

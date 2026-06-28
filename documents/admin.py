@@ -1,32 +1,19 @@
 from django.contrib import admin
 from django.utils.html import format_html
+
 from .models import Document
 
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-
-    # columns shown in the document list
     list_display = ['id', 'title', 'file_type_badge', 'status_badge',
                     'uploaded_at', 'text_preview', 'file_link']
-
-    # filters on the right sidebar
     list_filter = ['file_type', 'status', 'uploaded_at']
-
-    # search bar at the top
     search_fields = ['title', 'extracted_text']
-
-    # fields that cannot be edited
     readonly_fields = ['uploaded_at', 'file_type', 'status',
                        'extracted_text', 'file_preview']
-
-    # order by latest first
     ordering = ['-uploaded_at']
-
-    # how many documents per page
     list_per_page = 20
-
-    # field layout inside each document
     fieldsets = (
         ('Document Info', {
             'fields': ('title', 'file_type', 'status', 'uploaded_at')
@@ -39,14 +26,13 @@ class DocumentAdmin(admin.ModelAdmin):
         }),
     )
 
-    # colored file type badge
     def file_type_badge(self, obj):
         colors = {
-            'pdf':   '#dc3545',
+            'pdf': '#dc3545',
             'image': '#ffc107',
-            'docx':  '#0d6efd',
-            'xlsx':  '#198754',
-            'csv':   '#6c757d',
+            'docx': '#0d6efd',
+            'xlsx': '#198754',
+            'csv': '#6c757d',
         }
         color = colors.get(obj.file_type, '#6c757d')
         return format_html(
@@ -56,13 +42,12 @@ class DocumentAdmin(admin.ModelAdmin):
         )
     file_type_badge.short_description = 'Type'
 
-    # colored status badge
     def status_badge(self, obj):
         colors = {
-            'done':       '#198754',
+            'done': '#198754',
             'processing': '#0dcaf0',
-            'pending':    '#6c757d',
-            'failed':     '#dc3545',
+            'pending': '#6c757d',
+            'failed': '#dc3545',
         }
         color = colors.get(obj.status, '#6c757d')
         return format_html(
@@ -72,24 +57,21 @@ class DocumentAdmin(admin.ModelAdmin):
         )
     status_badge.short_description = 'Status'
 
-    # short preview of extracted text
     def text_preview(self, obj):
         if obj.extracted_text:
             return obj.extracted_text[:60] + '...' if len(obj.extracted_text) > 60 else obj.extracted_text
-        return '—'
+        return '-'
     text_preview.short_description = 'Text Preview'
 
-    # clickable link to original file
     def file_link(self, obj):
         if obj.file:
             return format_html(
                 '<a href="{}" target="_blank">Download</a>',
                 obj.file.url
             )
-        return '—'
+        return '-'
     file_link.short_description = 'File'
 
-    # image preview inside document detail
     def file_preview(self, obj):
         if obj.file and obj.file_type == 'image':
             return format_html(
@@ -101,5 +83,5 @@ class DocumentAdmin(admin.ModelAdmin):
                 '<a href="{}" target="_blank">Open File</a>',
                 obj.file.url
             )
-        return '—'
+        return '-'
     file_preview.short_description = 'Preview'

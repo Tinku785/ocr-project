@@ -3,6 +3,8 @@ import numpy as np
 
 def preprocess_image(image_path):
     img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f'Unable to read image: {image_path}')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Step 1: Remove noise
@@ -18,6 +20,8 @@ def preprocess_image(image_path):
 
     # Step 4: Deskew (straighten tilted document)
     coords = np.column_stack(np.where(thresh > 0))
+    if coords.size == 0:
+        return thresh
     angle = cv2.minAreaRect(coords)[-1]
     if angle < -45:
         angle = -(90 + angle)

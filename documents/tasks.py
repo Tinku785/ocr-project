@@ -66,7 +66,7 @@ def process_document(self, document_id):
         doc.progress = 100
         doc.save(update_fields=['extracted_text', 'status', 'progress'])
     except Exception as exc:
-        # Log the real error server-side — do NOT expose internal details to users.
+        # Log the real error server-side; do NOT expose internal details to users.
         logger.error(
             'OCR processing failed for document %s: %s',
             document_id, exc, exc_info=True,
@@ -76,4 +76,3 @@ def process_document(self, document_id):
         doc.progress = 0
         doc.save(update_fields=['extracted_text', 'status', 'progress'])
         raise
-

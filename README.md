@@ -217,8 +217,8 @@ Django secures credentials using industry-standard password hashing techniques.
 
 ## 🛠 Troubleshooting
 
-- **No module named 'fitz' / 'frontend' error**:
-  Ensure you are using `pymupdf` in `requirements.txt` instead of the PyPI package `fitz`. We replaced the dependency to avoid conflicts with Starlette's static assets router in the `frontend` library.
+- **No module named 'fitz' error**:
+  Ensure `PyMuPDF` is installed from `requirements.txt`. The code imports `fitz`, which is the module name exposed by PyMuPDF.
 - **Progress stays at 0%**:
   Celery caches python modules in memory. If you updated your code, you must restart your Celery worker using `Ctrl+C` and running the `celery -A ocr_project worker ...` command again.
 - **PaddleOCR installation issues**:

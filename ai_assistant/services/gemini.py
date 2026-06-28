@@ -30,53 +30,6 @@ def _client():
     return genai.Client(api_key=api_key)
 
 
-def _generate(prompt):
-    try:
-        response = _client().models.generate_content(
-            model=getattr(settings, 'GEMINI_MODEL', 'gemini-2.5-flash'),
-            contents=prompt,
-        )
-        text = getattr(response, 'text', '') or ''
-        if not text.strip():
-            raise GeminiServiceError('Gemini returned an empty response.', 502)
-        return text.strip()
-    except MissingGeminiApiKey:
-        raise
-    except errors.APIError as exc:
-        message = str(exc)
-        lower_message = message.lower()
-        if 'api key' in lower_message or 'permission' in lower_message:
-            raise GeminiServiceError(
-                'Gemini rejected the API key. Check GEMINI_API_KEY in .env.',
-                401,
-            ) from exc
-        if 'quota' in lower_message or 'rate' in lower_message:
-            raise GeminiServiceError(
-                'Gemini quota or rate limit exceeded. Please try again later.',
-                429,
-            ) from exc
-        raise GeminiServiceError(message, 502) from exc
-    except Exception as exc:
-        message = str(exc).lower()
-        if 'connection' in message or 'network' in message or 'timeout' in message:
-            raise GeminiServiceError(
-                'Network error while contacting Gemini. Please check your connection.',
-                503,
-            ) from exc
-        raise GeminiServiceError(str(exc), 500) from exc
-
-
-def _format_history(history):
-    if not history:
-        return 'No previous messages.'
-    lines = []
-    for item in history[-12:]:
-        role = item.get('role', 'user').title()
-        content = item.get('content', '')
-        lines.append(f'{role}: {content}')
-    return '\n'.join(lines)
-
-
 def _build_contents(history, final_message):
     contents = []
     if history:

@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,11 +27,13 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Must be set via SECRET_KEY in your .env file.
-SECRET_KEY = os.environ.get('SECRET_KEY', '')
+SECRET_KEY = os.environ.get('SECRET_KEY', '').strip()
+if not SECRET_KEY:
+    raise ImproperlyConfigured('SECRET_KEY must be set in the environment.')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Set DEBUG=False and ALLOWED_HOSTS=yourdomain.com in .env for production.
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False').strip().lower() == 'true'
 
 ALLOWED_HOSTS = [
     h.strip()

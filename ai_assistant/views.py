@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -14,6 +15,9 @@ from .services.gemini import (
     general_chat,
     summarize_document,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_HISTORY_MESSAGES = 30
@@ -93,26 +97,26 @@ def chat(request):
                 return JsonResponse({'error': 'Select a document first.'}, status=400)
 
             doc = get_object_or_404(Document, pk=document_id, status='done')
-            history = _get_history(request, 'document', doc.pk)
+            conversation_history = _get_history(request, 'document', doc.pk)
             answer = chat_with_document(
                 doc.title,
                 doc.extracted_text,
                 message,
-                history,
+                conversation_history,
             )
-            history.extend([
+            conversation_history.extend([
                 {'role': 'user', 'content': message},
                 {'role': 'assistant', 'content': answer},
             ])
-            _save_history(request, 'document', history, doc.pk)
+            _save_history(request, 'document', conversation_history, doc.pk)
         else:
-            history = _get_history(request, 'general')
-            
-            docs = _done_documents()
+            conversation_history = _get_history(request, 'general')
+
+            docs = _done_documents()[:10]
             documents_list = []
             for d in docs:
-                snippet = d.extracted_text[:600]
-                if len(d.extracted_text) > 600:
+                snippet = d.extracted_text[:300]
+                if len(d.extracted_text) > 300:
                     snippet += '...'
                 documents_list.append(
                     f"Document ID: {d.pk}\n"
@@ -122,15 +126,20 @@ def chat(request):
                     "---"
                 )
             
-            answer = general_chat(message, history, documents_list)
-            history.extend([
+            answer = general_chat(message, conversation_history, documents_list)
+            conversation_history.extend([
                 {'role': 'user', 'content': message},
                 {'role': 'assistant', 'content': answer},
             ])
-            _save_history(request, 'general', history)
+            _save_history(request, 'general', conversation_history)
 
-        return JsonResponse({'answer': answer, 'history': history})
+        return JsonResponse({'answer': answer, 'history': conversation_history})
+    except (GeminiServiceError, Http404) as exc:
+        return _error_response(exc)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid document selection.'}, status=400)
     except Exception as exc:
+        logger.exception('Unexpected assistant chat failure.')
         return _error_response(exc)
 
 
@@ -151,14 +160,19 @@ def summarize(request):
             doc.extracted_text,
             summary_type,
         )
-        history = _get_history(request, 'document', doc.pk)
-        history.extend([
+        conversation_history = _get_history(request, 'document', doc.pk)
+        conversation_history.extend([
             {'role': 'user', 'content': f'Summarize this document: {summary_type}'},
             {'role': 'assistant', 'content': summary},
         ])
-        _save_history(request, 'document', history, doc.pk)
-        return JsonResponse({'summary': summary, 'history': history})
+        _save_history(request, 'document', conversation_history, doc.pk)
+        return JsonResponse({'summary': summary, 'history': conversation_history})
+    except (GeminiServiceError, Http404) as exc:
+        return _error_response(exc)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid document selection.'}, status=400)
     except Exception as exc:
+        logger.exception('Unexpected assistant summarize failure.')
         return _error_response(exc)
 
 
