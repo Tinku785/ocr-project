@@ -10,7 +10,6 @@ urlpatterns = [
     path('search/', views.search_documents, name='search_documents'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    # path('register/', views.register_view, name='register'),
     path('document/<int:pk>/export/txt/', views.export_txt, name='export_txt'),
     path('document/<int:pk>/export/pdf/', views.export_pdf, name='export_pdf'),
 ]
