@@ -16,8 +16,8 @@ The flow below represents the life cycle of a document from upload to OCR extrac
 
 ```mermaid
 graph TD
-    User([User]) -->|Upload File| Django[Django Web App]
-    Django -->|Create Doc: Status=Pending| DB[(MySQL Database)]
+    User[User] -->|Upload File| Django[Django Web App]
+    Django -->|Create Doc: Status=Pending| DB[MySQL Database]
     Django -->|Delay Task: doc_id| Redis[Redis Message Broker]
     Redis -->|Queue Task| Celery[Celery Worker]
     Celery -->|Update Status: Processing| DB
@@ -192,6 +192,26 @@ python manage.py runserver
 Open your browser and navigate to:
 - Dashboard: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - AI Assistant: [http://127.0.0.1:8000/ai/](http://127.0.0.1:8000/ai/)
+
+---
+
+## 🔐 Authentication & User Credentials Generation
+
+The system requires authentication to upload documents, view details, or access the AI Assistant.
+
+### 1. Creating Credentials
+Since registration is closed in the default deployment (`/register/` URL is disabled in `urls.py`), user accounts must be created via Django's secure command-line management utility:
+
+```bash
+python manage.py createsuperuser
+```
+Follow the prompts to enter a `username`, `email`, and `password`.
+
+### 2. Password Hashing and Encryption Techniques
+Django secures credentials using industry-standard password hashing techniques. 
+* By default, Django uses **PBKDF2 (Password-Based Key Derivation Function 2)** with a **SHA-256** hashing algorithm.
+* **Salt Stretching**: Every password has a unique cryptographic salt added to it and is stretched by running it through **600,000+ iterations** of PBKDF2 to prevent rainbow table attacks.
+* If user registration is enabled (by uncommenting the register path in `urls.py`), new users will be created via `User.objects.create_user()`, which automatically applies the same secure PBKDF2 hashing before saving credentials to the database.
 
 ---
 
